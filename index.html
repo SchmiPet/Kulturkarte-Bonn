@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kulturkarte Bonn — Volt Bonn</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f5f5f5; color: #333; }
+  header { background: #502379; color: white; padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 18px; font-weight: 500; }
+  header span { font-size: 13px; opacity: 0.8; }
+  #container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .filter-bar { background: white; border-radius: 10px; border: 0.5px solid #ddd; padding: 12px 16px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .fg { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+  .fl { font-size: 11px; color: #888; font-weight: 600; margin-right: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .fb { font-size: 12px; padding: 4px 11px; border-radius: 20px; border: 0.5px solid #ccc; background: white; color: #444; cursor: pointer; transition: all 0.15s; }
+  .fb.active { background: #502379; color: white; border-color: #502379; }
+  .fb:hover:not(.active) { background: #f0f0f0; }
+  .sep { width: 0.5px; height: 24px; background: #e0e0e0; margin: 0 4px; }
+  #map { width: 100%; height: 580px; border-radius: 10px; border: 0.5px solid #ddd; z-index: 1; }
+  .footer-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; }
+  .li { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #666; }
+  .ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  #cnt { font-size: 12px; color: #999; }
+  .leaflet-popup-content-wrapper { border-radius: 8px !important; box-shadow: 0 2px 12px rgba(0,0,0,0.15) !important; }
+  .leaflet-popup-content { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important; font-size: 13px !important; margin: 10px 14px !important; }
+  .pp-name { font-weight: 600; font-size: 14px; margin-bottom: 3px; color: #222; }
+  .pp-info { color: #666; font-size: 12px; margin-bottom: 2px; }
+  .pp-bezirk { color: #999; font-size: 11px; margin-bottom: 6px; }
+  .pp-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <div style="width:32px;height:32px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+    <div style="width:18px;height:18px;background:#502379;border-radius:50%;"></div>
+  </div>
+  <div>
+    <h1>Kulturkarte Bonn</h1>
+    <span>Städtische und freie Kulturorte im Stadtgebiet · Volt Bonn 2026</span>
+  </div>
+</header>
+<div id="container">
+  <div class="filter-bar">
+    <div class="fg">
+      <span class="fl">Träger</span>
+      <button class="fb active" data-f="traeger" data-v="alle">Alle</button>
+      <button class="fb" data-f="traeger" data-v="städtisch">Städtisch</button>
+      <button class="fb" data-f="traeger" data-v="bund">Bund / Land</button>
+      <button class="fb" data-f="traeger" data-v="frei">Frei / Verein</button>
+      <button class="fb" data-f="traeger" data-v="privat">Privat</button>
+    </div>
+    <div class="sep"></div>
+    <div class="fg">
+      <span class="fl">Kategorie</span>
+      <button class="fb active" data-f="kat" data-v="alle">Alle</button>
+      <button class="fb" data-f="kat" data-v="Theater">Theater</button>
+      <button class="fb" data-f="kat" data-v="Konzert">Konzert</button>
+      <button class="fb" data-f="kat" data-v="Museum">Museum</button>
+      <button class="fb" data-f="kat" data-v="Galerie">Galerie</button>
+      <button class="fb" data-f="kat" data-v="Kino">Kino</button>
+      <button class="fb" data-f="kat" data-v="Kulturzentrum">Kulturzentrum</button>
+      <button class="fb" data-f="kat" data-v="Sonstiges">Sonstiges</button>
+    </div>
+    <div class="sep"></div>
+    <div class="fg">
+      <span class="fl">Bezirk</span>
+      <button class="fb active" data-f="bezirk" data-v="alle">Alle</button>
+      <button class="fb" data-f="bezirk" data-v="Innenstadt">Innenstadt</button>
+      <button class="fb" data-f="bezirk" data-v="Beuel">Beuel</button>
+      <button class="fb" data-f="bezirk" data-v="Bad Godesberg">Bad Godesberg</button>
+      <button class="fb" data-f="bezirk" data-v="Hardtberg">Hardtberg</button>
+    </div>
+  </div>
+  <div id="map"></div>
+  <div class="footer-bar">
+    <div class="legend">
+      <div class="li"><div class="ld" style="background:#502379"></div>Städtisch</div>
+      <div class="li"><div class="ld" style="background:#1D9E75"></div>Bund / Land</div>
+      <div class="li"><div class="ld" style="background:#378ADD"></div>Frei / Verein</div>
+      <div class="li"><div class="ld" style="background:#D85A30"></div>Privat</div>
+    </div>
+    <div id="cnt"></div>
+  </div>
+</div>
+<script>
+const ORTE = [
+  // THEATER STÄDTISCH
+  {name:"Opernhaus (Theater Bonn)", kat:"Theater", traeger:"städtisch", bezirk:"Innenstadt", lat:50.7370, lng:7.1065, info:"Oper / Musiktheater / Tanz"},
+  {name:"Schauspielhaus Bad Godesberg", kat:"Theater", traeger:"städtisch", bezirk:"Bad Godesberg", lat:50.6834, lng:7.1536, info:"Schauspiel — städtische Spielstätte"},
+  {name:"Theaterwerkstätten Beuel", kat:"Theater", traeger:"städtisch", bezirk:"Beuel", lat:50.7403, lng:7.1316, info:"Werkstatt / Probebühnen"},
+  // THEATER FREI/PRIVAT
+  {name:"Contra-Kreis-Theater", kat:"Theater", traeger:"privat", bezirk:"Innenstadt", lat:50.7333, lng:7.1012, info:"Schauspiel / Privattheater"},
+  {name:"Euro Theater Central", kat:"Theater", traeger:"frei", bezirk:"Innenstadt", lat:50.7360, lng:7.0945, info:"Literaturtheater"},
+  {name:"Theater im Ballsaal (fringe ensemble)", kat:"Theater", traeger:"frei", bezirk:"Innenstadt", lat:50.7276, lng:7.0748, info:"Zeitgenöss. Theater / Tanz"},
+  {name:"Haus der Springmaus", kat:"Theater", traeger:"privat", bezirk:"Innenstadt", lat:50.7273, lng:7.0741, info:"Improvisationstheater / Comedy"},
+  {name:"Junges Theater Bonn", kat:"Theater", traeger:"frei", bezirk:"Beuel", lat:50.7365, lng:7.1170, info:"Kinder- / Jugendtheater"},
+  {name:"Brotfabrik Bühne / Theater Marabu", kat:"Theater", traeger:"frei", bezirk:"Beuel", lat:50.7409, lng:7.1234, info:"Theater / Tanz / Kinder"},
+  {name:"Pantheon Theater", kat:"Theater", traeger:"frei", bezirk:"Beuel", lat:50.7397, lng:7.1327, info:"Kabarett / Comedy"},
+  {name:"Kleines Theater Bad Godesberg", kat:"Theater", traeger:"privat", bezirk:"Bad Godesberg", lat:50.6809, lng:7.1555, info:"Schauspiel / Privattheater"},
+  {name:"TiK Theater im Keller", kat:"Theater", traeger:"frei", bezirk:"Hardtberg", lat:50.7205, lng:7.0588, info:"Kellertheater / Amateur"},
+  {name:"Malentes Theater Palast", kat:"Theater", traeger:"privat", bezirk:"Beuel", lat:50.7435, lng:7.1598, info:"Musiktheater / Unterhaltung"},
+  {name:"GOP Variété-Theater", kat:"Theater", traeger:"privat", bezirk:"Innenstadt", lat:50.7192, lng:7.1219, info:"Variété / Dinner-Show"},
+  // KONZERT
+  {name:"Beethovenhalle", kat:"Konzert", traeger:"städtisch", bezirk:"Innenstadt", lat:50.7410, lng:7.1049, info:"Konzerthalle"},
+  {name:"Beethoven-Haus / Kammermusiksaal", kat:"Konzert", traeger:"frei", bezirk:"Innenstadt", lat:50.7372, lng:7.1018, info:"Kammermusik / Museum"},
+  {name:"Stadthalle Bad Godesberg", kat:"Konzert", traeger:"städtisch", bezirk:"Bad Godesberg", lat:50.6820, lng:7.1520, info:"Konzert / Veranstaltungen (in Sanierung)"},
+  {name:"Harmonie", kat:"Konzert", traeger:"privat", bezirk:"Innenstadt", lat:50.7267, lng:7.0747, info:"Konzert / Rock / Pop / Club"},
+  {name:"Musikbahnhof Beuel (geplant)", kat:"Konzert", traeger:"frei", bezirk:"Beuel", lat:50.7380, lng:7.1300, info:"Konzert — in Entwicklung"},
+  // KULTURZENTREN
+  {name:"Kulturzentrum Brotfabrik", kat:"Kulturzentrum", traeger:"frei", bezirk:"Beuel", lat:50.7409, lng:7.1234, info:"11 Kulturbetriebe: Theater, Kino, Tanz, Galerie, Musik"},
+  {name:"Beueler Brückenforum", kat:"Kulturzentrum", traeger:"städtisch", bezirk:"Beuel", lat:50.7388, lng:7.1158, info:"Großer Veranstaltungssaal / Mehrzweck"},
+  {name:"Kulturzentrum Hardtberg", kat:"Kulturzentrum", traeger:"frei", bezirk:"Hardtberg", lat:50.7139, lng:7.0441, info:"Konzert / Ausstellung / Bürgerhaus / Duisdorfer Jazz Sommer"},
+  {name:"Tapetenfabrik Friesdorf", kat:"Kulturzentrum", traeger:"frei", bezirk:"Innenstadt", lat:50.7010, lng:7.1270, info:"Freies Kulturzentrum / Kreative Szene"},
+  // SONSTIGE KULTURORTE BAD GODESBERG
+  {name:"Trinkpavillon Kurpark Bad Godesberg", kat:"Sonstiges", traeger:"frei", bezirk:"Bad Godesberg", lat:50.6810, lng:7.1567, info:"Konzert / Ausstellungen / Bürgertreff"},
+  {name:"Carillon / Glockenspiel Kurpark", kat:"Sonstiges", traeger:"frei", bezirk:"Bad Godesberg", lat:50.6818, lng:7.1558, info:"Musik / Kulturerbe"},
+  {name:"Redoute Bad Godesberg", kat:"Sonstiges", traeger:"städtisch", bezirk:"Bad Godesberg", lat:50.6816, lng:7.1530, info:"Veranstaltungshaus / Gesellschaft"},
+  // MUSEEN BUND
+  {name:"Haus der Geschichte", kat:"Museum", traeger:"bund", bezirk:"Innenstadt", lat:50.7174, lng:7.1188, info:"Zeitgeschichte — Bundesstiftung"},
+  {name:"Bundeskunsthalle", kat:"Museum", traeger:"bund", bezirk:"Innenstadt", lat:50.7145, lng:7.1220, info:"Ausstellungshaus — Bund"},
+  {name:"Deutsches Museum Bonn", kat:"Museum", traeger:"bund", bezirk:"Bad Godesberg", lat:50.6990, lng:7.1508, info:"Wissenschaft / Technik / KI"},
+  {name:"LVR LandesMuseum Bonn", kat:"Museum", traeger:"bund", bezirk:"Innenstadt", lat:50.7319, lng:7.0928, info:"Kulturgeschichte / Archäologie"},
+  {name:"Museum Koenig", kat:"Museum", traeger:"bund", bezirk:"Innenstadt", lat:50.7221, lng:7.1136, info:"Naturkunde / Zoologie"},
+  {name:"Akademisches Kunstmuseum", kat:"Museum", traeger:"bund", bezirk:"Innenstadt", lat:50.7513, lng:7.0970, info:"Antike / Archäologie — Universität Bonn"},
+  {name:"Arithmeum", kat:"Museum", traeger:"bund", bezirk:"Innenstadt", lat:50.7308, lng:7.1047, info:"Mathematik / Design — Universität Bonn"},
+  // MUSEEN STÄDTISCH
+  {name:"Kunstmuseum Bonn", kat:"Museum", traeger:"städtisch", bezirk:"Innenstadt", lat:50.7152, lng:7.1211, info:"Bildende Kunst"},
+  {name:"StadtMuseum Bonn", kat:"Museum", traeger:"städtisch", bezirk:"Innenstadt", lat:50.7347, lng:7.1046, info:"Stadtgeschichte (derzeit geschlossen)"},
+  {name:"NS-Dokumentationszentrum", kat:"Museum", traeger:"städtisch", bezirk:"Innenstadt", lat:50.7376, lng:7.0940, info:"Gedenkstätte / Zeitgeschichte"},
+  // MUSEEN FREI
+  {name:"August-Macke-Haus", kat:"Museum", traeger:"frei", bezirk:"Innenstadt", lat:50.7376, lng:7.0863, info:"Kunstgeschichte / Expressionismus"},
+  {name:"Beethoven-Haus Museum", kat:"Museum", traeger:"frei", bezirk:"Innenstadt", lat:50.7369, lng:7.1012, info:"Musikgeschichte"},
+  {name:"Frauenmuseum Bonn", kat:"Museum", traeger:"frei", bezirk:"Innenstadt", lat:50.7408, lng:7.0924, info:"Frauen- und Kunstgeschichte"},
+  {name:"Beueler Heimatmuseum", kat:"Museum", traeger:"frei", bezirk:"Beuel", lat:50.7380, lng:7.1270, info:"Lokalgeschichte"},
+  // GALERIEN INNENSTADT
+  {name:"Bonner Kunstverein", kat:"Galerie", traeger:"frei", bezirk:"Innenstadt", lat:50.7390, lng:7.0867, info:"Zeitgenöss. Kunst / Artothek / Atelierhaus"},
+  {name:"Künstlerforum Bonn", kat:"Galerie", traeger:"frei", bezirk:"Innenstadt", lat:50.7391, lng:7.0869, info:"Zeitgenöss. Kunst / selbstverwaltet"},
+  {name:"Gesellschaft für Kunst und Gestaltung", kat:"Galerie", traeger:"frei", bezirk:"Innenstadt", lat:50.7391, lng:7.0869, info:"Ausstellungshaus / Galerie"},
+  {name:"Galerie Sassen", kat:"Galerie", traeger:"privat", bezirk:"Innenstadt", lat:50.7246, lng:7.1119, info:"Zeitgenöss. Kunst / internationale Positionen"},
+  {name:"Galerie Gisela Clement", kat:"Galerie", traeger:"privat", bezirk:"Innenstadt", lat:50.7172, lng:7.1007, info:"Zeitgenöss. Kunst / Nachwuchsförderung"},
+  {name:"Goethe-Institut Bonn", kat:"Galerie", traeger:"bund", bezirk:"Innenstadt", lat:50.7302, lng:7.1053, info:"Ausstellungen / Kulturvermittlung"},
+  // GALERIEN BAD GODESBERG
+  {name:"Kunstverein Bad Godesberg", kat:"Galerie", traeger:"frei", bezirk:"Bad Godesberg", lat:50.6816, lng:7.1483, info:"Zeitgenöss. Kunst / Galerie"},
+  {name:"Stiftung für Kunst und Kultur", kat:"Galerie", traeger:"frei", bezirk:"Bad Godesberg", lat:50.6924, lng:7.1585, info:"Ausstellungshaus — Stiftung"},
+  {name:"KuKuG – Kunst & Kultur Bad Godesberg", kat:"Galerie", traeger:"frei", bezirk:"Bad Godesberg", lat:50.6830, lng:7.1500, info:"Kulturverein / Veranstaltungen"},
+  // GALERIEN BEUEL
+  {name:"Galerie Brotfabrik", kat:"Galerie", traeger:"frei", bezirk:"Beuel", lat:50.7410, lng:7.1225, info:"Zeitgenöss. Kunst"},
+  // LITERATUR / SONSTIGE KULTURORTE INNENSTADT
+  {name:"Literaturhaus Bonn", kat:"Sonstiges", traeger:"frei", bezirk:"Innenstadt", lat:50.7346, lng:7.0974, info:"Lesungen / Literatur / Autorenbegegnungen"},
+  {name:"Café Camus", kat:"Sonstiges", traeger:"privat", bezirk:"Innenstadt", lat:50.7386, lng:7.0960, info:"Kulturcafé / Lesungen / Veranstaltungen"},
+  {name:"Theatergemeinde Bonn", kat:"Sonstiges", traeger:"frei", bezirk:"Innenstadt", lat:50.7285, lng:7.1050, info:"Besucherorganisation / Vermittlung Kultur"},
+  // FREIE THEATER ZUSATZ
+  {name:"Bon(n)RaumTheater", kat:"Theater", traeger:"frei", bezirk:"Innenstadt", lat:50.7330, lng:7.1015, info:"Freies Schauspielensemble / Gastspiele in der Theatergemeinde"},
+  {name:"Tanzgenerator Bonn", kat:"Theater", traeger:"frei", bezirk:"Beuel", lat:50.7408, lng:7.1231, info:"Zeitgenöss. Tanz / Produktionsort in der Brotfabrik"},
+  {name:"Werkstattbühne im Opernhaus", kat:"Theater", traeger:"städtisch", bezirk:"Innenstadt", lat:50.7370, lng:7.1065, info:"Studiobühne (125 Plätze) / Uraufführungen / experimentelles Theater"},
+  // KINO
+  {name:"Kinopolis Bad Godesberg", kat:"Kino", traeger:"privat", bezirk:"Bad Godesberg", lat:50.6862, lng:7.1554, info:"Multiplex (10 Säle)"},
+  {name:"Rex Lichtspiele", kat:"Kino", traeger:"privat", bezirk:"Innenstadt", lat:50.7274, lng:7.0747, info:"Programmkino"},
+  {name:"Neue Filmbühne Beuel", kat:"Kino", traeger:"privat", bezirk:"Beuel", lat:50.7393, lng:7.1210, info:"Programmkino"},
+  {name:"Bonner Kinemathek", kat:"Kino", traeger:"frei", bezirk:"Beuel", lat:50.7420, lng:7.1230, info:"Filmarchiv / Kulturkino"},
+];
+
+const COLORS = { städtisch:"#502379", bund:"#1D9E75", frei:"#378ADD", privat:"#D85A30" };
+const CLABELS = { städtisch:"Städtisch", bund:"Bund / Land", frei:"Frei / Verein", privat:"Privat" };
+let activeFilters = { traeger:'alle', kat:'alle', bezirk:'alle' };
+let layerGroup;
+
+const map = L.map('map').setView([50.718, 7.110], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
+  maxZoom: 18
+}).addTo(map);
+layerGroup = L.layerGroup().addTo(map);
+
+function makeIcon(traeger) {
+  const color = COLORS[traeger] || '#888';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="36" viewBox="0 0 26 36"><path d="M13 0C6 0 0 6 0 13c0 10 13 23 13 23S26 23 26 13C26 6 20 0 13 0z" fill="${color}" stroke="white" stroke-width="1.5"/><circle cx="13" cy="13" r="6" fill="white" opacity="0.9"/></svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize:[26,36], iconAnchor:[13,36], popupAnchor:[0,-38] });
+}
+
+function renderMarkers() {
+  layerGroup.clearLayers();
+  const filtered = ORTE.filter(o => {
+    if (activeFilters.traeger !== 'alle' && o.traeger !== activeFilters.traeger) return false;
+    if (activeFilters.kat !== 'alle' && o.kat !== activeFilters.kat) return false;
+    if (activeFilters.bezirk !== 'alle' && o.bezirk !== activeFilters.bezirk) return false;
+    return true;
+  });
+  filtered.forEach(o => {
+    const color = COLORS[o.traeger];
+    const marker = L.marker([o.lat, o.lng], { icon: makeIcon(o.traeger) });
+    marker.bindPopup(`<div class="pp-name">${o.name}</div><div class="pp-info">${o.info}</div><div class="pp-bezirk">${o.bezirk}</div><span class="pp-badge" style="background:${color}22;color:${color};border:0.5px solid ${color}55;">${CLABELS[o.traeger]}</span><span class="pp-badge" style="background:#88888818;color:#666;border:0.5px solid #88888844;">${o.kat}</span>`);
+    layerGroup.addLayer(marker);
+  });
+  document.getElementById('cnt').textContent = `${filtered.length} von ${ORTE.length} Kulturorten`;
+}
+
+document.querySelectorAll('.fb').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const g = btn.dataset.f, v = btn.dataset.v;
+    activeFilters[g] = v;
+    document.querySelectorAll(`.fb[data-f="${g}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderMarkers();
+  });
+});
+renderMarkers();
+</script>
+</body>
+</html>
